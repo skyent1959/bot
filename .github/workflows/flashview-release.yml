@@ -26,10 +26,27 @@ jobs:
           set -euo pipefail
           echo 'Chunk SHA-256:'
           sha256sum buildparts/project.b64.part*
-          cat buildparts/project.b64.part* > project.b64
+          cat \
+            buildparts/project.b64.part00 \
+            buildparts/project.b64.part01 \
+            buildparts/project.b64.part02 \
+            buildparts/project.b64.part03a \
+            buildparts/project.b64.part03b0 \
+            buildparts/project.b64.part03b1 \
+            buildparts/project.b64.part03c0 \
+            buildparts/project.b64.part03d0 \
+            buildparts/project.b64.part03d1 \
+            buildparts/project.b64.part03d2 \
+            buildparts/project.b64.part03d3 \
+            buildparts/project.b64.part03d4 \
+            buildparts/project.b64.part03c2 \
+            buildparts/project.b64.part03c3 \
+            buildparts/project.b64.part03c4 \
+            buildparts/project.b64.part04 \
+            buildparts/project.b64.part05 \
+            buildparts/project.b64.part06 > project.b64
           base64 --decode project.b64 > project.zip
-          echo 'Reconstructed source SHA-256:'
-          sha256sum project.zip
+          echo '0aac2184602d4092dcfdbf48094902251ce418428674ef84ea16ed0e5ad15611  project.zip' | sha256sum -c -
           unzip -t project.zip
           unzip -o project.zip
           rm -f project.b64 project.zip
