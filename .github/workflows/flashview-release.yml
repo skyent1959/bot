@@ -24,6 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo 'Chunk SHA-256:'
+          sha256sum buildparts/project.b64.part*
           cat buildparts/project.b64.part* > project.b64
           base64 --decode project.b64 > project.zip
           echo 'Reconstructed source SHA-256:'
@@ -67,47 +69,24 @@ jobs:
           set -euo pipefail
           UNSIGNED="$(find app/build/outputs/apk/release -type f -name '*release*.apk' | head -n1)"
           test -n "$UNSIGNED"
-
           BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
           ZIPALIGN="$BUILD_TOOLS/zipalign"
           APKSIGNER="$BUILD_TOOLS/apksigner"
           AAPT="$BUILD_TOOLS/aapt"
-
           PASS="$(openssl rand -hex 32)"
           KEYSTORE="$RUNNER_TEMP/flashview-release.jks"
           ALIGNED="$RUNNER_TEMP/flashview-release-aligned.apk"
           FINAL="$RUNNER_TEMP/FlashView-v1.4.0-Android16-release.apk"
-
-          keytool -genkeypair -v \
-            -keystore "$KEYSTORE" \
-            -storepass "$PASS" \
-            -keypass "$PASS" \
-            -alias flashview-release \
-            -keyalg RSA -keysize 4096 -validity 10000 \
-            -dname 'CN=FlashView Release,O=FlashView Personal,C=TR'
-
+          keytool -genkeypair -v -keystore "$KEYSTORE" -storepass "$PASS" -keypass "$PASS" -alias flashview-release -keyalg RSA -keysize 4096 -validity 10000 -dname 'CN=FlashView Release,O=FlashView Personal,C=TR'
           "$ZIPALIGN" -p -f 4 "$UNSIGNED" "$ALIGNED"
-          "$APKSIGNER" sign \
-            --ks "$KEYSTORE" \
-            --ks-key-alias flashview-release \
-            --ks-pass "pass:$PASS" \
-            --key-pass "pass:$PASS" \
-            --out "$FINAL" \
-            "$ALIGNED"
-
+          "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias flashview-release --ks-pass "pass:$PASS" --key-pass "pass:$PASS" --out "$FINAL" "$ALIGNED"
           "$APKSIGNER" verify --verbose --print-certs "$FINAL" | tee "$RUNNER_TEMP/apksigner-verify.txt"
           "$ZIPALIGN" -c -v 4 "$FINAL" | tee "$RUNNER_TEMP/zipalign-verify.txt"
           "$AAPT" dump badging "$FINAL" | tee "$RUNNER_TEMP/aapt-badging.txt"
           "$AAPT" dump xmltree "$FINAL" AndroidManifest.xml | tee "$RUNNER_TEMP/manifest-tree.txt"
-
           grep -F "package: name='com.spawder.flashview' versionCode='4' versionName='1.4.0'" "$RUNNER_TEMP/aapt-badging.txt"
           grep -F "targetSdkVersion:'36'" "$RUNNER_TEMP/aapt-badging.txt"
-
-          if grep -E 'A: android:(debuggable|testOnly).*0xffffffff' "$RUNNER_TEMP/manifest-tree.txt"; then
-            echo 'ERROR: debuggable=true or testOnly=true detected in final APK' >&2
-            exit 1
-          fi
-
+          if grep -E 'A: android:(debuggable|testOnly).*0xffffffff' "$RUNNER_TEMP/manifest-tree.txt"; then echo 'ERROR: debuggable=true or testOnly=true detected' >&2; exit 1; fi
           sha256sum "$FINAL" | tee "$RUNNER_TEMP/sha256.txt"
           cp "$FINAL" "$GITHUB_WORKSPACE/FlashView-v1.4.0-Android16-release.apk"
           cp "$RUNNER_TEMP/apksigner-verify.txt" "$GITHUB_WORKSPACE/apksigner-verify.txt"
