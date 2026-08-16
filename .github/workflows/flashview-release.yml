@@ -54,7 +54,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode overrides/ui-patches.tgz.b64 > "$RUNNER_TEMP/ui-patches.tgz"
+          cat \
+            overrides/ui-patches.part00 \
+            overrides/ui-patches.part01 \
+            overrides/ui-patches.part02 \
+            overrides/ui-patches.part03 > "$RUNNER_TEMP/ui-patches.tgz.b64"
+          base64 --decode "$RUNNER_TEMP/ui-patches.tgz.b64" > "$RUNNER_TEMP/ui-patches.tgz"
+          echo 'b890695f8d5c575301572172619b600bcda9070042c250646ae9c2b8e2348d83  '"$RUNNER_TEMP/ui-patches.tgz" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/ui-patches"
           tar -xzf "$RUNNER_TEMP/ui-patches.tgz" -C "$RUNNER_TEMP/ui-patches"
           patch -p4 < "$RUNNER_TEMP/ui-patches/main.patch"
